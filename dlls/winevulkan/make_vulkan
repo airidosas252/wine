@@ -112,7 +112,6 @@ UNSUPPORTED_EXTENSIONS = [
     "VK_EXT_metal_objects",
     "VK_EXT_physical_device_drm",
     "VK_GOOGLE_surfaceless_query",
-    "VK_KHR_external_fence_fd",
     "VK_SEC_amigo_profiling", # Angle specific.
 
     # Extensions which require callback handling
