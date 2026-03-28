@@ -70,8 +70,8 @@ static int termux_esync;
 static void shm_cleanup(void)
 {
     close( shm_fd );
-    if ((termux_esync && unlink( shm_name ) == -1) || (!termux_esync && shm_unlink( shm_name ) == -1))
-        perror( "shm_unlink" );
+    if (termux_esync ? (unlink( shm_name ) == -1) : (shm_unlink( shm_name ) == -1))
+        perror( "shm_cleanup" );
 }
 
 void esync_init(void)
@@ -84,21 +84,23 @@ void esync_init(void)
     termux_esync = getenv("WINEESYNC_TERMUX") && atoi(getenv("WINEESYNC_TERMUX"));
 
     if (termux_esync)
-	{
-    	if (st.st_ino != (unsigned long)st.st_ino)
-        	sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
-    	else
-        	sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx-esync", (unsigned long)st.st_ino );
-        unlink( shm_name );
+    {
+        if (st.st_ino != (unsigned long)st.st_ino)
+            sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
+        else
+            sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx-esync", (unsigned long)st.st_ino );
+        if (!unlink( shm_name ))
+            fprintf( stderr, "esync: warning: a previous shm file %s was not properly removed\n", shm_name );
         shm_fd = open( shm_name, O_RDWR | O_CREAT | O_EXCL, 0644 );
     }
     else
     {
-    	if (st.st_ino != (unsigned long)st.st_ino)
-        	sprintf( shm_name, "/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
-    	else
-        	sprintf( shm_name, "/wine-%lx-esync", (unsigned long)st.st_ino );
-        shm_unlink( shm_name );
+        if (st.st_ino != (unsigned long)st.st_ino)
+            sprintf( shm_name, "/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
+        else
+            sprintf( shm_name, "/wine-%lx-esync", (unsigned long)st.st_ino );
+        if (!shm_unlink( shm_name ))
+            fprintf( stderr, "esync: warning: a previous shm file %s was not properly removed\n", shm_name );
         shm_fd = shm_open( shm_name, O_RDWR | O_CREAT | O_EXCL, 0644 );
     }
     if (shm_fd == -1)

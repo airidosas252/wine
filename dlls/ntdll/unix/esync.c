@@ -1332,25 +1332,26 @@ void esync_init(void)
 
     if (stat( config_dir, &st ) == -1)
         ERR("Cannot stat %s\n", config_dir);
-	
-	termux_esync = getenv("WINEESYNC_TERMUX") && atoi(getenv("WINEESYNC_TERMUX"));
-	
-	if (termux_esync)
-	{
-    	if (st.st_ino != (unsigned long)st.st_ino)
-        	sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
-    	else
-        	sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx-esync", (unsigned long)st.st_ino );
+
+    termux_esync = getenv("WINEESYNC_TERMUX") && atoi(getenv("WINEESYNC_TERMUX"));
+
+    if (termux_esync)
+    {
+        if (st.st_ino != (unsigned long)st.st_ino)
+            sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
+        else
+            sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx-esync", (unsigned long)st.st_ino );
     }
     else
     {
-    	if (st.st_ino != (unsigned long)st.st_ino)
-        	sprintf( shm_name, "/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
-    	else
-        	sprintf( shm_name, "/wine-%lx-esync", (unsigned long)st.st_ino );
+        if (st.st_ino != (unsigned long)st.st_ino)
+            sprintf( shm_name, "/wine-%lx%08lx-esync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
+        else
+            sprintf( shm_name, "/wine-%lx-esync", (unsigned long)st.st_ino );
     }
 
-    if ((termux_esync && (shm_fd = open( shm_name, O_RDWR, 0644 )) == -1) || (!termux_esync && (shm_fd = shm_open( shm_name, O_RDWR, 0644 )) == -1))
+    shm_fd = termux_esync ? open( shm_name, O_RDWR, 0644 ) : shm_open( shm_name, O_RDWR, 0644 );
+    if (shm_fd == -1)
     {
         /* probably the server isn't running with WINEESYNC, tell the user and bail */
         if (errno == ENOENT)
