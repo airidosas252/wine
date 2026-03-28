@@ -68,7 +68,7 @@ int do_fsync(void)
 #endif
 }
 
-static char shm_name[29];
+static char shm_name[96];
 static int shm_fd;
 static off_t shm_size;
 static void **shm_addrs;
@@ -85,8 +85,8 @@ static uint32_t shm_idx_free_search_start_hint;
 static void shm_cleanup(void)
 {
     close( shm_fd );
-    if (shm_unlink( shm_name ) == -1)
-        perror( "shm_unlink" );
+    if (unlink( shm_name ) == -1)
+        perror( "unlink" );
 }
 
 void fsync_init(void)
@@ -97,16 +97,16 @@ void fsync_init(void)
         fatal_error( "cannot stat config dir\n" );
 
     if (st.st_ino != (unsigned long)st.st_ino)
-        sprintf( shm_name, "/wine-%lx%08lx-fsync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
+        sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx%08lx-fsync", (unsigned long)((unsigned long long)st.st_ino >> 32), (unsigned long)st.st_ino );
     else
-        sprintf( shm_name, "/wine-%lx-fsync", (unsigned long)st.st_ino );
+        sprintf( shm_name, "/data/data/com.termux/files/usr/tmp/wine-%lx-fsync", (unsigned long)st.st_ino );
 
-    if (!shm_unlink( shm_name ))
+    if (!unlink( shm_name ))
         fprintf( stderr, "fsync: warning: a previous shm file %s was not properly removed\n", shm_name );
 
-    shm_fd = shm_open( shm_name, O_RDWR | O_CREAT | O_EXCL, 0644 );
+    shm_fd = open( shm_name, O_RDWR | O_CREAT | O_EXCL, 0644 );
     if (shm_fd == -1)
-        perror( "shm_open" );
+        perror( "open" );
 
     shm_addrs = calloc( 128, sizeof(shm_addrs[0]) );
     shm_addrs_size = 128;
