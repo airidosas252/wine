@@ -613,6 +613,48 @@ DWORD WINAPI GetAdaptersInfo( IP_ADAPTER_INFO *info, ULONG *size )
     TRACE( "info %p, size %p\n", info, size );
     if (!size) return ERROR_INVALID_PARAMETER;
 
+    /* On Android/Termux the NSI/nsiproxy stack causes services.exe to deadlock.
+       Return a synthetic adapter by default; set WINE_USE_NSI=1 to use real NSI. */
+    if (!GetEnvironmentVariableA( "WINE_USE_NSI", NULL, 0 ))
+    {
+        IN_ADDR lo_addr, lo_mask, lo_gw;
+
+        needed = sizeof(*info);
+        if (!info || *size < needed)
+        {
+            *size = needed;
+            return ERROR_BUFFER_OVERFLOW;
+        }
+
+        memset( info, 0, sizeof(*info) );
+        info->Next = NULL;
+        strcpy( info->AdapterName, "{deadbeef-0000-0000-0000-000000000000}" );
+        strcpy( info->Description, "Wine Virtual Adapter" );
+        info->AddressLength = 6;
+        info->Index = 1;
+        info->Type = IF_TYPE_ETHERNET_CSMACD;
+        info->DhcpEnabled = FALSE;
+        info->CurrentIpAddress = NULL;
+
+        lo_addr.s_addr = htonl( INADDR_LOOPBACK );  /* 127.0.0.1 */
+        lo_mask.s_addr = htonl( 0xff000000 );        /* 255.0.0.0 */
+        ip_addr_string_init( &info->IpAddressList, &lo_addr, &lo_mask, 0 );
+
+        lo_gw.s_addr = INADDR_ANY;
+        lo_mask.s_addr = INADDR_NONE;
+        ip_addr_string_init( &info->GatewayList, &lo_gw, &lo_mask, 0 );
+        ip_addr_string_init( &info->DhcpServer, NULL, NULL, 0 );
+
+        info->HaveWins = FALSE;
+        ip_addr_string_init( &info->PrimaryWinsServer, NULL, NULL, 0 );
+        ip_addr_string_init( &info->SecondaryWinsServer, NULL, NULL, 0 );
+        info->LeaseObtained = 0;
+        info->LeaseExpires = 0;
+
+        TRACE( "returning synthetic adapter (NSI bypassed)\n" );
+        return ERROR_SUCCESS;
+    }
+
     err = NsiAllocateAndGetTable( 1, &NPI_MS_NDIS_MODULEID, NSI_NDIS_IFINFO_TABLE,
                                   (void **)&if_keys, sizeof(*if_keys), (void **)&if_rw, sizeof(*if_rw),
                                   NULL, 0, (void **)&if_stat, sizeof(*if_stat), &if_count, 0 );
@@ -1331,6 +1373,74 @@ ULONG WINAPI DECLSPEC_HOTPATCH GetAdaptersAddresses( ULONG family, ULONG flags, 
     TRACE( "(%ld, %08lx, %p, %p, %p)\n", family, flags, reserved, aa, size );
 
     if (!size) return ERROR_INVALID_PARAMETER;
+
+    /* On Android/Termux the NSI/nsiproxy stack causes services.exe to deadlock.
+       Return a synthetic adapter by default; set WINE_USE_NSI=1 to use real NSI. */
+    if (!GetEnvironmentVariableA( "WINE_USE_NSI", NULL, 0 ))
+    {
+        ULONG align = sizeof(ULONGLONG) - 1;
+        char *ptr;
+        /* Layout: IP_ADAPTER_ADDRESSES + adapter name string + unicast addr + sockaddr */
+        ULONG name_len = sizeof("{deadbeef-0000-0000-0000-000000000000}");
+        ULONG uni_size = sizeof(IP_ADAPTER_UNICAST_ADDRESS) + sizeof(SOCKADDR_IN);
+
+        needed = sizeof(*aa) + ((name_len + 1) & ~1);
+        needed = (needed + align) & ~align;
+        if (!(flags & GAA_FLAG_SKIP_UNICAST))
+            needed += (uni_size + align) & ~align;
+
+        if (!aa || *size < needed)
+        {
+            *size = needed;
+            return ERROR_BUFFER_OVERFLOW;
+        }
+
+        memset( aa, 0, needed );
+        ptr = (char *)(aa + 1);
+
+        aa->Length = sizeof(*aa);
+        aa->IfIndex = 1;
+        aa->Next = NULL;
+
+        aa->AdapterName = ptr;
+        memcpy( ptr, "{deadbeef-0000-0000-0000-000000000000}", name_len );
+        ptr += (name_len + 1) & ~1;
+
+        aa->DnsSuffix = (WCHAR *)L"";
+        aa->Description = (WCHAR *)L"Wine Virtual Adapter";
+        aa->FriendlyName = (WCHAR *)L"Wine Virtual Adapter";
+        aa->PhysicalAddressLength = 6;
+        aa->Mtu = 1500;
+        aa->IfType = IF_TYPE_ETHERNET_CSMACD;
+        aa->OperStatus = IfOperStatusUp;
+        aa->TransmitLinkSpeed = 1000000000;
+        aa->ReceiveLinkSpeed = 1000000000;
+        aa->ConnectionType = NET_IF_CONNECTION_DEDICATED;
+        aa->Ipv4Enabled = TRUE;
+
+        if (!(flags & GAA_FLAG_SKIP_UNICAST))
+        {
+            IP_ADAPTER_UNICAST_ADDRESS *uni;
+            SOCKADDR_IN *sin;
+
+            ptr = (char *)(((UINT_PTR)ptr + align) & ~align);
+            uni = (IP_ADAPTER_UNICAST_ADDRESS *)ptr;
+            sin = (SOCKADDR_IN *)(uni + 1);
+
+            uni->Length = sizeof(*uni);
+            uni->Address.lpSockaddr = (SOCKADDR *)sin;
+            uni->Address.iSockaddrLength = sizeof(*sin);
+            sin->sin_family = AF_INET;
+            sin->sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+            uni->OnLinkPrefixLength = 8;
+            uni->DadState = IpDadStatePreferred;
+            uni->Flags = IP_ADAPTER_ADDRESS_DNS_ELIGIBLE;
+            aa->FirstUnicastAddress = uni;
+        }
+
+        TRACE( "returning synthetic adapter (NSI bypassed)\n" );
+        return ERROR_SUCCESS;
+    }
 
     err = adapters_addresses_alloc( family, flags, &info, &count );
     if (err) return err;
