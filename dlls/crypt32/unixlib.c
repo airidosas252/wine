@@ -615,6 +615,10 @@ static void import_certs_from_path(LPCSTR path, BOOL allow_dir)
 
 static const char * const CRYPT_knownLocations[] = {
  "/etc/ssl/certs/ca-certificates.crt",
+ "/data/data/com.termux/files/usr/glibc/etc/ssl/certs/ca-certificates.crt",
+ "/data/data/com.termux/files/usr/etc/ssl/certs/ca-certificates.crt",
+ "/data/data/com.termux/files/usr/glibc/etc/ssl/certs",
+ "/data/data/com.termux/files/usr/etc/ssl/certs",
  "/etc/ssl/certs",
  "/etc/pki/tls/certs/ca-bundle.crt",
  "/usr/share/ca-certificates/ca-bundle.crt",

@@ -708,9 +708,9 @@ static struct image_file_map* image_locate_build_id_target(const BYTE* id, unsig
 
     if (!(fmap_link = HeapAlloc(GetProcessHeap(), 0, sizeof(*fmap_link))))
         return NULL;
-    if (image_locate_build_id_target_in_dir(fmap_link, id, idlen, L"/usr/lib/debug/.build-id/"))
+    if (image_locate_build_id_target_in_dir(fmap_link, id, idlen, L"/data/data/com.termux/files/usr/glibc/lib/debug/.build-id/"))
         return fmap_link;
-    if (image_locate_build_id_target_in_dir(fmap_link, id, idlen, L"/usr/lib/.build-id/"))
+    if (image_locate_build_id_target_in_dir(fmap_link, id, idlen, L"/data/data/com.termux/files/usr/glibc/lib/.build-id/"))
         return fmap_link;
 
     sz = GetEnvironmentVariableW(L"WINEHOMEDIR", NULL, 0);
@@ -796,7 +796,7 @@ struct image_file_map* image_load_debugaltlink(struct image_file_map* fmap, stru
                 if (!ret)
                 {
                     dst = HeapAlloc(GetProcessHeap(), 0,
-                                    sizeof(L"/usr/lib/debug/.build-id/") + (3 + filename_len + idlen * 2) * sizeof(WCHAR));
+                                    sizeof(L"/data/data/com.termux/files/usr/glibc/lib/debug/.build-id/") + (3 + filename_len + idlen * 2) * sizeof(WCHAR));
                     if (dst)
                     {
                         WCHAR* p;
