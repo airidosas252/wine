@@ -34,7 +34,8 @@ jobs:
             --disable-everything \
             --enable-shared --disable-static \
             --enable-avcodec --enable-avformat --enable-avutil \
-            --enable-bsf=pcm_rechunk
+            --enable-bsf=pcm_rechunk \
+            --enable-demuxer=mov
           make -j$(nproc)
           sudo make install
           echo "PKG_CONFIG_PATH=/opt/ffmpeg4/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
