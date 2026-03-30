@@ -5,6 +5,9 @@ on:
     branches: [ experimental_10.0 ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
@@ -129,10 +132,18 @@ jobs:
           LDFLAGS="${LDFLAGS/-Wl,-z,relro,-z,now/}"
           export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
           make -j$(nproc) CC="ccache cc" CXX="ccache c++"
+          make install
+
+      - name: Compress
+        run: |
+          BUILD_DATE=$(date +%Y-%m-%d)
+          tar -cJf proton-10.0-arm64ec-${BUILD_DATE}.tar.xz -C /data/data/com.termux/files/usr/glibc .
+          echo "ARTIFACT_NAME=proton-10.0-arm64ec-${BUILD_DATE}" >> $GITHUB_ENV
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wine-arm64-${{ github.sha }}
-          path: /data/data/com.termux/files/usr/glibc
+          name: ${{ env.ARTIFACT_NAME }}
+          path: proton-10.0-arm64ec-*.tar.xz
           retention-days: 7
+          compression-level: 0
