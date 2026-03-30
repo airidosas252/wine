@@ -46,6 +46,9 @@ jobs:
             wayland-protocols \
             libxkbcommon-dev \
             libxkbregistry-dev \
+            libavutil-dev \
+            libavformat-dev \
+            libavcodec-dev \
             flex bison \
             ccache \
             autoconf
@@ -115,7 +118,6 @@ jobs:
             --with-wayland \
             --without-tests \
             --enable-archs=arm64ec,aarch64,i386 \
-            --disable-winedmo \
             --without-x
 
       - name: Build
