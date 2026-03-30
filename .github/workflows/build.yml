@@ -23,9 +23,25 @@ jobs:
           DIRNAME=$(ls /opt | grep llvm-mingw)
           echo "/opt/${DIRNAME}/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
+      - name: Build FFmpeg 4.4
         run: |
           sudo apt-get update
+          sudo apt-get install -y nasm
+          curl -L https://ffmpeg.org/releases/ffmpeg-4.4.4.tar.xz | tar -xJ
+          cd ffmpeg-4.4.4
+          ./configure --prefix=/opt/ffmpeg4 \
+            --disable-programs --disable-doc \
+            --disable-everything \
+            --enable-shared --disable-static \
+            --enable-avcodec --enable-avformat --enable-avutil \
+            --enable-bsf=pcm_rechunk
+          make -j$(nproc)
+          sudo make install
+          echo "PKG_CONFIG_PATH=/opt/ffmpeg4/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/opt/ffmpeg4/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
           sudo apt-get install -y \
             libfontconfig-dev \
             libfreetype-dev \
@@ -49,9 +65,6 @@ jobs:
             wayland-protocols \
             libxkbcommon-dev \
             libxkbregistry-dev \
-            libavutil-dev \
-            libavformat-dev \
-            libavcodec-dev \
             flex bison \
             ccache \
             autoconf
