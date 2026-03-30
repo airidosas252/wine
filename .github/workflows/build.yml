@@ -45,7 +45,8 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             flex bison \
-            ccache
+            ccache \
+            autoconf
 
       - name: Create Termux prefix path
         run: sudo mkdir -p /data/data/com.termux/files/usr/glibc && sudo chown $USER /data/data/com.termux/files/usr/glibc
@@ -57,6 +58,9 @@ jobs:
           key: ccache-arm64-${{ github.sha }}
           restore-keys: |
             ccache-arm64-
+
+      - name: Autogen
+        run: ./autogen.sh
 
       - name: Configure
         run: |
