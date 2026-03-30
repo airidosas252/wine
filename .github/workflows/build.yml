@@ -1,0 +1,130 @@
+name: Build Wine (ARM64)
+
+on:
+  push:
+    branches: [ experimental_10.0 ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install llvm-mingw (bylaws fork)
+        run: |
+          RELEASE=$(curl -s https://api.github.com/repos/bylaws/llvm-mingw/releases/latest | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
+          URL="https://github.com/bylaws/llvm-mingw/releases/download/${RELEASE}/llvm-mingw-${RELEASE}-ucrt-ubuntu-22.04-aarch64.tar.xz"
+          curl -L "$URL" | sudo tar -xJ -C /opt
+          DIRNAME=$(ls /opt | grep llvm-mingw)
+          echo "/opt/${DIRNAME}/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libfontconfig-dev \
+            libfreetype-dev \
+            libgnutls28-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libkrb5-dev \
+            libgl-dev \
+            libpulse-dev \
+            libsdl2-dev \
+            libvulkan-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxfixes-dev \
+            libxinerama-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libxshmfence-dev \
+            libwayland-dev \
+            wayland-protocols \
+            flex bison \
+            ccache
+
+      - name: Create Termux prefix path
+        run: sudo mkdir -p /data/data/com.termux/files/usr/glibc && sudo chown $USER /data/data/com.termux/files/usr/glibc
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-arm64-${{ github.sha }}
+          restore-keys: |
+            ccache-arm64-
+
+      - name: Configure
+        run: |
+          export CCACHE_CPP2=yes
+          ./configure \
+            --prefix=/data/data/com.termux/files/usr/glibc \
+            --enable-nls \
+            --disable-tests \
+            --without-alsa \
+            --without-capi \
+            --without-coreaudio \
+            --without-cups \
+            --without-dbus \
+            --with-fontconfig \
+            --with-freetype \
+            --without-gettext \
+            --with-gettextpo=no \
+            --without-gphoto \
+            --with-gnutls \
+            --with-gstreamer \
+            --without-inotify \
+            --with-krb5 \
+            --with-mingw=clang \
+            --without-netapi \
+            --without-opencl \
+            --with-opengl \
+            --without-osmesa \
+            --without-oss \
+            --without-pcap \
+            --with-pthread \
+            --with-pulse \
+            --without-sane \
+            --with-sdl \
+            --without-udev \
+            --without-unwind \
+            --without-usb \
+            --without-v4l2 \
+            --with-vulkan \
+            --with-xcomposite \
+            --with-xcursor \
+            --with-xfixes \
+            --with-xinerama \
+            --with-xinput \
+            --with-xinput2 \
+            --with-xrandr \
+            --with-xrender \
+            --without-xshape \
+            --with-xshm \
+            --without-xxf86vm \
+            --with-wayland \
+            --without-tests \
+            --enable-archs=arm64ec,aarch64,i386 \
+            --disable-winedmo \
+            --without-x
+
+      - name: Build
+        run: |
+          export CCACHE_CPP2=yes
+          CPPFLAGS="${CPPFLAGS/-fstack-protector-strong/}"
+          CFLAGS="${CFLAGS/-fstack-protector-strong/}"
+          CXXFLAGS="${CXXFLAGS/-fstack-protector-strong/}"
+          LDFLAGS="${LDFLAGS/-Wl,-z,relro,-z,now/}"
+          export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
+          make -j$(nproc) CC="ccache cc" CXX="ccache c++"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wine-arm64-${{ github.sha }}
+          path: /data/data/com.termux/files/usr/glibc
+          retention-days: 7
