@@ -44,6 +44,8 @@ jobs:
             libxshmfence-dev \
             libwayland-dev \
             wayland-protocols \
+            libxkbcommon-dev \
+            libxkbregistry-dev \
             flex bison \
             ccache \
             autoconf
