@@ -140,10 +140,6 @@ jobs:
       - name: Build
         run: |
           export CCACHE_CPP2=yes
-          CPPFLAGS="${CPPFLAGS/-fstack-protector-strong/}"
-          CFLAGS="${CFLAGS/-fstack-protector-strong/}"
-          CXXFLAGS="${CXXFLAGS/-fstack-protector-strong/}"
-          LDFLAGS="${LDFLAGS/-Wl,-z,relro,-z,now/}"
           export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
           make -j$(nproc) CC="ccache cc" CXX="ccache c++"
           make install
