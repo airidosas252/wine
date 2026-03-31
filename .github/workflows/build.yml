@@ -140,7 +140,6 @@ jobs:
       - name: Build
         run: |
           export CCACHE_CPP2=yes
-          export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
           make -j$(nproc) CC="ccache cc" CXX="ccache c++"
           make install
 
